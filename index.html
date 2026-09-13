@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827"><link rel="manifest" href="manifest.json"><title>Gym Log</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--accent:#176b3a;--soft:#eaf5ee}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.app{max-width:720px;margin:auto;padding-bottom:90px}.top{background:#111827;color:#fff;padding:18px 16px;position:sticky;top:0;z-index:10}
+.toprow,.row{display:flex;align-items:center}.toprow{justify-content:space-between}.brand{font-weight:800;font-size:22px}.small{font-size:12px;color:var(--muted)}.top .small{color:#fff;opacity:.7}
+main{padding:14px}.hidden{display:none!important}.card{background:var(--card);border-radius:16px;padding:15px;margin:10px 0;box-shadow:0 2px 10px #0000000a}
+h2,h3,p{margin-top:0}.hero{padding:18px}.btn{border:0;border-radius:11px;padding:11px 13px;font-weight:750;cursor:pointer}.primary{background:var(--accent);color:#fff}.ghost{background:#eef0f2}.danger{background:#fff0f0;color:#a11}.full{width:100%}.gap{gap:8px}.between{justify-content:space-between}
+.statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{background:#fff;border-radius:14px;padding:13px}.num{font-size:22px;font-weight:800}.label{font-size:11px;color:var(--muted)}
+.days{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.day{padding:10px 4px;border:0;border-radius:10px;background:#eef0f2;font-weight:750}.day.active{background:#111827;color:#fff}
+.exercise{padding:15px}.exercise h3{font-size:17px;margin-bottom:3px}.target{font-size:12px;color:var(--muted);margin-bottom:12px}.grid{display:grid;grid-template-columns:36px 1fr 1fr 42px;gap:7px;align-items:center}.head{font-size:11px;color:var(--muted);text-align:center}
+input,select{width:100%;padding:11px 8px;border:1px solid #d8dce1;border-radius:9px;background:#fff}.grid input{text-align:center}.setno{text-align:center;color:var(--muted);font-size:13px}.copy{padding:9px;background:var(--soft);color:var(--accent);border:0;border-radius:9px}.pr{font-size:12px;font-weight:750;color:var(--accent)}
+.progress{height:8px;background:#e5e7eb;border-radius:99px;overflow:hidden}.bar{height:100%;background:var(--accent);width:0}.list{display:flex;flex-direction:column;gap:8px}.item{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}.item-actions{display:flex;gap:6px}.item-actions button{padding:8px 10px}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.formgrid .wide{grid-column:1/-1}.hint{background:#fff8df;border-radius:12px;padding:12px;font-size:13px}
+.bottom{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom));z-index:20}.bottom button{max-width:692px;display:block;margin:auto}
+.toast{position:fixed;left:50%;bottom:85px;transform:translateX(-50%);background:#111827;color:#fff;padding:11px 15px;border-radius:10px;display:none;z-index:30}
+</style></head>
+<body><div class="app">
+<header class="top"><div class="toprow"><div><div class="brand">🏋️ Gym Log</div><div class="top small">Sterker worden · progressie bijhouden</div></div><div class="top small">v0.3</div></div></header>
+<main>
+<section id="home">
+<div class="card hero"><div class="small">VANDAAG</div><h2 id="today"></h2><p id="focus" class="small"></p><button class="btn primary full" onclick="startToday()">Start training →</button></div>
+<div class="statgrid"><div class="stat"><div class="num" id="statWorkouts">0</div><div class="label">Trainingen</div></div><div class="stat"><div class="num" id="statPR">0</div><div class="label">PR's</div></div><div class="stat"><div class="num" id="statWeek">0/4</div><div class="label">Deze week</div></div></div>
+<div class="card"><h3>Deze week</h3><div id="week"></div></div>
+<div class="card"><div class="row between"><h3 style="margin:0">Mijn oefeningen</h3><button class="btn ghost" onclick="showManage()">Beheren</button></div><p class="small" style="margin-top:8px">Voeg oefeningen toe, wijzig sets/reps of verwijder oefeningen uit een trainingsdag.</p></div>
+<div class="card"><h3>Persoonlijke records</h3><button class="btn ghost full" onclick="showPR()">Bekijk PR's →</button></div>
+</section>
+
+<section id="training" class="hidden">
+<div class="row between"><button class="btn ghost" onclick="home()">← Home</button><div id="elapsed" class="small"></div></div>
+<div class="card"><div class="days" id="dayTabs"></div></div>
+<div class="card"><div class="row between"><div><h2 id="trainTitle" style="margin-bottom:3px"></h2><div id="trainFocus" class="small"></div></div><div style="text-align:right"><b id="doneCount">0/0</b><div class="small">sets</div></div></div><div class="progress" style="margin-top:12px"><div id="bar" class="bar"></div></div></div>
+<div id="exercises"></div><button class="btn primary full" onclick="finish()">Training afronden ✓</button>
+</section>
+
+<section id="manage" class="hidden">
+<button class="btn ghost" onclick="home()">← Home</button>
+<div class="card"><h2>Oefeningen beheren</h2><p class="small">Wijzig hier het schema. Je aanpassingen blijven op dit apparaat bewaard.</p><div class="days" id="manageTabs"></div></div>
+<div class="card"><h3 id="manageTitle"></h3><div id="manageList" class="list"></div></div>
+<div class="card"><h3>Oefening toevoegen</h3><div class="formgrid">
+<input id="newName" class="wide" placeholder="Naam oefening">
+<input id="newSets" type="number" min="1" max="10" value="3" placeholder="Sets">
+<input id="newReps" placeholder="Reps, bv. 8-10">
+</div><button class="btn primary full" style="margin-top:10px" onclick="addExercise()">+ Oefening toevoegen</button></div>
+<div class="hint">Tip: gebruik bij oefeningen met dumbbells of machines gewoon de naam die jij in jouw gym gebruikt.</div>
+</section>
+
+<section id="prs" class="hidden"><button class="btn ghost" onclick="home()">← Home</button><div class="card"><h2>🏆 Persoonlijke records</h2><p class="small">Hoogste ingevoerde gewicht per oefening.</p><div id="prList" class="list"></div></div></section>
+</main>
+<div class="bottom"><button class="btn danger" onclick="clearData()">Gegevens wissen</button></div><div id="toast" class="toast"></div>
+</div>
+<script>
+const defaultWorkout={
+"Maandag":{focus:"Upper A · Kracht",ex:[["Bench press / chest press",4,"5–6"],["Lat pulldown",4,"6–8"],["Incline dumbbell press",3,"8–10"],["Seated cable row",3,"8–10"],["Shoulder press",3,"6–8"],["Lateral raise",3,"12–15"],["Biceps curl + triceps pushdown",2,"10–12"]]},
+"Woensdag":{focus:"Lower A · Quads + kracht",ex:[["Squat óf leg press",4,"5–7"],["Romanian deadlift",3,"6–8"],["Bulgarian split squat",3,"8–10"],["Leg extension",3,"10–12"],["Leg curl",2,"10–12"],["Calf raises",3,"10–15"],["Cable crunch / ab machine",3,"10–15"]]},
+"Vrijdag":{focus:"Upper B · Spiermassa + variatie",ex:[["Incline dumbbell press",3,"6–8"],["Pull-ups óf assisted pull-up",3,"6–10"],["Chest-supported row",3,"8–10"],["Cable fly",3,"10–15"],["Dumbbell shoulder press",3,"8–10"],["Rear delt fly / face pull",3,"12–15"],["Hammer curl + overhead triceps extension",3,"10–12"]]},
+"Zaterdag":{focus:"Lower B · Hamstrings + billen",ex:[["Romanian deadlift / hip hinge",3,"6–8"],["Hip thrust",3,"8–10"],["Hack squat / leg press",3,"8–10"],["Walking lunges",2,"10–12 per been"],["Leg curl",3,"10–15"],["Calf raises",3,"12–15"],["Plank / ab wheel",3,"30–60 sec"]]}
+};
+let saved=JSON.parse(localStorage.getItem("gymLog03")||"null");
+let db=saved||{workouts:defaultWorkout,sessions:[],prs:{}};
+if(!db.workouts)db.workouts=defaultWorkout;
+let day="Maandag",timer=null,startTime=null;
+const days=Object.keys(db.workouts);
+const save=()=>localStorage.setItem("gymLog03",JSON.stringify(db));
+const key=(d,e)=>d+"|"+e;
+const esc=s=>s.replaceAll("&","&amp;").replaceAll('"',"&quot;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+function todayDay(){let d=new Date().getDay();return ({1:"Maandag",3:"Woensdag",5:"Vrijdag",6:"Zaterdag"})[d]||days[0]}
+function sameWeek(a,b){let x=new Date(a),y=new Date(b);x.setHours(0,0,0,0);y.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));y.setDate(y.getDate()-((y.getDay()+6)%7));return x.toDateString()===y.toDateString()}
+function hideAll(){["home","training","manage","prs"].forEach(id=>document.getElementById(id).classList.add("hidden"))}
+function home(){stopTimer();hideAll();document.getElementById("home").classList.remove("hidden");renderHome()}
+function renderHome(){let d=todayDay();document.getElementById("today").textContent=d+" · "+db.workouts[d].focus;document.getElementById("focus").textContent="Klaar om sterker te worden?";document.getElementById("statWorkouts").textContent=db.sessions.length;document.getElementById("statPR").textContent=Object.keys(db.prs).length;let w=days.filter(x=>db.sessions.some(s=>s.day===x&&sameWeek(s.date,new Date()))).length;document.getElementById("statWeek").textContent=w+"/4";document.getElementById("week").innerHTML=days.map(x=>`<div style="padding:7px 0">${db.sessions.some(s=>s.day===x&&sameWeek(s.date,new Date()))?"✅":"⬜"} ${x} · ${db.workouts[x].focus}</div>`).join("")}
+function startToday(){openTraining(todayDay())}
+function openTraining(d){day=d;hideAll();document.getElementById("training").classList.remove("hidden");startTimer();renderTraining()}
+function renderTraining(){document.getElementById("dayTabs").innerHTML=days.map(d=>`<button class="day ${d===day?"active":""}" onclick="openTraining('${d}')">${d.slice(0,2)}</button>`).join("");document.getElementById("trainTitle").textContent=day;document.getElementById("trainFocus").textContent=db.workouts[day].focus;let prev=[...db.sessions].reverse().find(s=>s.day===day);document.getElementById("exercises").innerHTML=db.workouts[day].ex.map(x=>exerciseCard(x,prev)).join("");updateProgress()}
+function exerciseCard([ex,n,reps],prev){let p=prev?.sets?.[key(day,ex)]||[],best=db.prs[ex]?.weight||"—",rows="";for(let i=0;i<n;i++){let old=p[i]||{};rows+=`<div class="setno">${i+1}</div><input inputmode="decimal" data-e="${esc(ex)}" data-i="${i}" data-t="w" placeholder="${old.w||""}"><input inputmode="numeric" data-e="${esc(ex)}" data-i="${i}" data-t="r" placeholder="${old.r||""}"><button class="copy" onclick="copyRow(this)">↻</button>`}return `<div class="card exercise"><div class="row between"><div><h3>${ex}</h3><div class="target">${n} sets · ${reps} reps</div></div><div class="pr">PR ${best}</div></div><div class="grid"><div class="head">SET</div><div class="head">KG</div><div class="head">REPS</div><div></div>${rows}</div>${p.length?'<div class="prev">Vorige training beschikbaar · ↻ kopieert die set.</div>':""}</div>`}
+function copyRow(b){let r=b.parentElement,w=r.querySelector('[data-t="w"]'),q=r.querySelector('[data-t="r"]');if(w.placeholder)w.value=w.placeholder;if(q.placeholder)q.value=q.placeholder;updateProgress()}
+function collect(){let sets={};document.querySelectorAll("[data-e]").forEach(i=>{let e=i.dataset.e,n=+i.dataset.i,t=i.dataset.t,k=key(day,e);sets[k]??=[];sets[k][n]??={};sets[k][n][t]=i.value});return sets}
+function updateProgress(){let total=db.workouts[day].ex.reduce((a,x)=>a+x[1],0),done=0;document.querySelectorAll('[data-t="w"]').forEach(i=>{let r=i.parentElement.querySelector('[data-t="r"]');if(i.value&&r?.value)done++});document.getElementById("doneCount").textContent=done+"/"+total;document.getElementById("bar").style.width=(total?Math.min(100,done/total*100):0)+"%"}
+document.addEventListener("input",e=>{if(e.target.matches("[data-e]"))updateProgress()});
+function finish(){let sets=collect(),now=new Date().toISOString();db.sessions.push({day,date:now,sets});Object.entries(sets).forEach(([k,a])=>{let ex=k.split("|").slice(1).join("|");a.forEach(x=>{let w=parseFloat(x?.w);if(w&&(w>(db.prs[ex]?.weight||0)))db.prs[ex]={weight:w,date:now,day}})});save();toast("Training opgeslagen 💪");setTimeout(home,500)}
+function showPR(){hideAll();document.getElementById("prs").classList.remove("hidden");let e=Object.entries(db.prs).sort((a,b)=>b[1].weight-a[1].weight);document.getElementById("prList").innerHTML=e.length?e.map(([x,p])=>`<div class="item"><div class="row between"><b>${x}</b><strong>${p.weight} kg</strong></div><div class="small">${p.day} · ${new Date(p.date).toLocaleDateString("nl-NL")}</div></div>`).join(""):"<div class='small'>Nog geen PR's.</div>"}
+let manageDay="Maandag";
+function showManage(){hideAll();document.getElementById("manage").classList.remove("hidden");renderManage()}
+function renderManage(){document.getElementById("manageTabs").innerHTML=days.map(d=>`<button class="day ${d===manageDay?"active":""}" onclick="manageDay='${d}';renderManage()">${d.slice(0,2)}</button>`).join("");document.getElementById("manageTitle").textContent=manageDay+" · "+db.workouts[manageDay].focus;document.getElementById("manageList").innerHTML=db.workouts[manageDay].ex.map((x,i)=>`<div class="item"><div class="row between"><div><b>${x[0]}</b><div class="small">${x[1]} sets · ${x[2]} reps</div></div><div class="item-actions"><button class="btn ghost" onclick="editEx(${i})">Wijzig</button><button class="btn danger" onclick="removeEx(${i})">×</button></div></div></div>`).join("")}
+function addExercise(){let n=document.getElementById("newName").value.trim(),s=parseInt(document.getElementById("newSets").value)||3,r=document.getElementById("newReps").value.trim()||"8–12";if(!n){toast("Vul een naam in");return}db.workouts[manageDay].ex.push([n,s,r]);save();document.getElementById("newName").value="";toast("Oefening toegevoegd");renderManage()}
+function editEx(i){let x=db.workouts[manageDay].ex[i],n=prompt("Naam oefening:",x[0]);if(n===null)return;let s=prompt("Aantal sets:",x[1]);if(s===null)return;let r=prompt("Reps:",x[2]);if(r===null)return;db.workouts[manageDay].ex[i]=[n.trim()||x[0],Math.max(1,parseInt(s)||x[1]),r.trim()||x[2]];save();renderManage()}
+function removeEx(i){let x=db.workouts[manageDay].ex[i];if(confirm(`"${x[0]}" verwijderen uit ${manageDay}?`)){db.workouts[manageDay].ex.splice(i,1);save();renderManage();toast("Oefening verwijderd")}}
+function startTimer(){stopTimer();startTime=Date.now();timer=setInterval(()=>{let s=Math.floor((Date.now()-startTime)/1000);document.getElementById("elapsed").textContent=`⏱ ${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`},1000)}
+function stopTimer(){if(timer)clearInterval(timer);timer=null}
+function toast(t){let x=document.getElementById("toast");x.textContent=t;x.style.display="block";setTimeout(()=>x.style.display="none",1800)}
+function clearData(){if(confirm("Alle trainingen, PR's én aangepaste oefeningen wissen?")){localStorage.removeItem("gymLog03");location.reload()}}
+renderHome();if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script></body></html>
